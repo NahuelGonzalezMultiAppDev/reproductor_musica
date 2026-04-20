@@ -1,0 +1,12 @@
+name: reproductor_musica
+description: Proyecto reproductor de música.
+version: 1.0.0+1
+
+environment:
+  sdk: '^3.11.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.5.1
+  just_audio: ^0.9.36

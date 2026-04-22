@@ -29,10 +29,10 @@ class _PantallaPruebaState extends State<PantallaPrueba> {
   }
 
   Future<void> _probarEscaner() async {
-    // 1. Llamamos a tu servicio
+    //Llamamos al servicio.
     final canciones = await _scanner.scanSongs();
     
-    // 2. Actualizamos la pantalla con el resultado
+    //Se actualiza la pantalla con el resultado.
     setState(() {
       _canciones = canciones;
       _cargando = false;
@@ -44,7 +44,7 @@ class _PantallaPruebaState extends State<PantallaPrueba> {
     return Scaffold(
       appBar: AppBar(title: const Text('Mi prueba de Archivos')),
       body: _cargando 
-        ? const Center(child: CircularProgressIndicator()) // Muestra un circulito mientras escanea
+        ? const Center(child: CircularProgressIndicator()) //Se muestra un circulito mientras escanea.
         : ListView.builder(
             itemCount: _canciones.length,
             itemBuilder: (context, index) {

@@ -3,6 +3,7 @@ import '../models/artist.dart';
 import '../models/genre.dart';
 import '../models/playlist.dart';
 import '../models/song.dart';
+import 'database_helper.dart';
 
 enum SongSortBy { title, artist, album, dateAdded, playCount, duration, year }
 
@@ -21,6 +22,13 @@ class MusicLibrary {
     required this.playlists,
   });
 
+  static const empty = MusicLibrary(
+    songs: [],
+    artists: [],
+    albums: [],
+    playlists: [],
+  );
+
   MusicLibrary copyWith({
     List<Song>? songs,
     List<Artist>? artists,
@@ -37,21 +45,19 @@ class MusicLibrary {
 }
 
 class MusicDatabase {
-  static MusicLibrary seed() {
+  static Future<MusicLibrary> loadAll() async {
+    final db = DatabaseHelper.instance;
+    final results = await Future.wait([
+      db.getSongs(),
+      db.getArtists(),
+      db.getAlbums(),
+      db.getPlaylists(),
+    ]);
     return MusicLibrary(
-      songs: const [],
-      artists: const [],
-      albums: const [],
-      playlists: [
-        Playlist(
-          id: 'p_favorites',
-          name: 'Me gusta',
-          description: 'Tus canciones favoritas',
-          songIds: const [],
-          createdAt: DateTime(2026, 4, 21),
-          isSystem: true,
-        ),
-      ],
+      songs: results[0] as List<Song>,
+      artists: results[1] as List<Artist>,
+      albums: results[2] as List<Album>,
+      playlists: results[3] as List<Playlist>,
     );
   }
 

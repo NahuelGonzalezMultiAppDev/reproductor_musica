@@ -6,29 +6,68 @@ import '../models/artist.dart';
 import '../models/genre.dart';
 import '../models/playlist.dart';
 import '../models/song.dart';
+import '../services/database_helper.dart';
 import '../services/music_database.dart';
 
-class LibraryNotifier extends Notifier<MusicLibrary> {
+class LibraryNotifier extends AsyncNotifier<MusicLibrary> {
+  DatabaseHelper get _db => DatabaseHelper.instance;
+
   @override
-  MusicLibrary build() => MusicDatabase.seed();
+  Future<MusicLibrary> build() => MusicDatabase.loadAll();
 
-  void toggleFavorite(String songId) {
-    final updated = [
-      for (final s in state.songs)
-        if (s.id == songId) s.copyWith(isFavorite: !s.isFavorite) else s,
-    ];
-    state = state.copyWith(songs: updated, playlists: _refreshFavorites(updated));
+  MusicLibrary? get _current => state.value;
+
+  Future<void> addSong(Song song) async {
+    await _db.insertSong(song);
+    final lib = _current;
+    if (lib == null) return;
+    state = AsyncData(lib.copyWith(songs: [...lib.songs, song]));
   }
 
-  void incrementPlayCount(String songId) {
-    final updated = [
-      for (final s in state.songs)
-        if (s.id == songId) s.copyWith(playCount: s.playCount + 1) else s,
-    ];
-    state = state.copyWith(songs: updated);
+  Future<void> removeSong(String songId) async {
+    await _db.deleteSong(songId);
+    final lib = _current;
+    if (lib == null) return;
+    state = AsyncData(lib.copyWith(
+      songs: lib.songs.where((s) => s.id != songId).toList(),
+      playlists: [
+        for (final p in lib.playlists)
+          p.copyWith(songIds: p.songIds.where((id) => id != songId).toList()),
+      ],
+    ));
   }
 
-  void createPlaylist(String name, {String? description}) {
+  Future<void> toggleFavorite(String songId) async {
+    final lib = _current;
+    if (lib == null) return;
+    final song = lib.songs.where((s) => s.id == songId).firstOrNull;
+    if (song == null) return;
+    final newValue = !song.isFavorite;
+    await _db.setSongFavorite(songId, newValue);
+
+    final updatedSongs = [
+      for (final s in lib.songs)
+        if (s.id == songId) s.copyWith(isFavorite: newValue) else s,
+    ];
+    state = AsyncData(lib.copyWith(
+      songs: updatedSongs,
+      playlists: _refreshFavorites(lib.playlists, updatedSongs),
+    ));
+  }
+
+  Future<void> incrementPlayCount(String songId) async {
+    await _db.incrementSongPlayCount(songId);
+    final lib = _current;
+    if (lib == null) return;
+    state = AsyncData(lib.copyWith(
+      songs: [
+        for (final s in lib.songs)
+          if (s.id == songId) s.copyWith(playCount: s.playCount + 1) else s,
+      ],
+    ));
+  }
+
+  Future<void> createPlaylist(String name, {String? description}) async {
     final playlist = Playlist(
       id: 'p_${DateTime.now().microsecondsSinceEpoch}',
       name: name,
@@ -36,66 +75,85 @@ class LibraryNotifier extends Notifier<MusicLibrary> {
       songIds: const [],
       createdAt: DateTime.now(),
     );
-    state = state.copyWith(playlists: [...state.playlists, playlist]);
+    await _db.insertPlaylist(playlist);
+    final lib = _current;
+    if (lib == null) return;
+    state = AsyncData(lib.copyWith(playlists: [...lib.playlists, playlist]));
   }
 
-  void deletePlaylist(String playlistId) {
-    state = state.copyWith(
-      playlists: state.playlists
-          .where((p) => p.id != playlistId && !p.isSystem)
-          .toList(),
-    );
+  Future<void> deletePlaylist(String playlistId) async {
+    final lib = _current;
+    if (lib == null) return;
+    final target = lib.playlists.where((p) => p.id == playlistId).firstOrNull;
+    if (target == null || target.isSystem) return;
+    await _db.deletePlaylist(playlistId);
+    state = AsyncData(lib.copyWith(
+      playlists: lib.playlists.where((p) => p.id != playlistId).toList(),
+    ));
   }
 
-  void addSongToPlaylist(String playlistId, String songId) {
-    final updated = [
-      for (final p in state.playlists)
-        if (p.id == playlistId && !p.songIds.contains(songId))
-          p.copyWith(songIds: [...p.songIds, songId])
-        else
-          p,
-    ];
-    state = state.copyWith(playlists: updated);
+  Future<void> addSongToPlaylist(String playlistId, String songId) async {
+    await _db.addSongToPlaylist(playlistId, songId);
+    final lib = _current;
+    if (lib == null) return;
+    state = AsyncData(lib.copyWith(
+      playlists: [
+        for (final p in lib.playlists)
+          if (p.id == playlistId && !p.songIds.contains(songId))
+            p.copyWith(songIds: [...p.songIds, songId])
+          else
+            p,
+      ],
+    ));
   }
 
-  void removeSongFromPlaylist(String playlistId, String songId) {
-    final updated = [
-      for (final p in state.playlists)
-        if (p.id == playlistId)
-          p.copyWith(songIds: p.songIds.where((id) => id != songId).toList())
-        else
-          p,
-    ];
-    state = state.copyWith(playlists: updated);
+  Future<void> removeSongFromPlaylist(
+    String playlistId,
+    String songId,
+  ) async {
+    await _db.removeSongFromPlaylist(playlistId, songId);
+    final lib = _current;
+    if (lib == null) return;
+    state = AsyncData(lib.copyWith(
+      playlists: [
+        for (final p in lib.playlists)
+          if (p.id == playlistId)
+            p.copyWith(songIds: p.songIds.where((id) => id != songId).toList())
+          else
+            p,
+      ],
+    ));
   }
 
-  List<Playlist> _refreshFavorites(List<Song> songs) {
+  List<Playlist> _refreshFavorites(
+    List<Playlist> playlists,
+    List<Song> songs,
+  ) {
     final favIds = songs.where((s) => s.isFavorite).map((s) => s.id).toList();
     return [
-      for (final p in state.playlists)
+      for (final p in playlists)
         if (p.id == 'p_favorites') p.copyWith(songIds: favIds) else p,
     ];
   }
 }
 
 final libraryProvider =
-    NotifierProvider<LibraryNotifier, MusicLibrary>(LibraryNotifier.new);
+    AsyncNotifierProvider<LibraryNotifier, MusicLibrary>(LibraryNotifier.new);
 
-final allSongsProvider = Provider<List<Song>>(
-  (ref) => ref.watch(libraryProvider).songs,
-);
+MusicLibrary _libOrEmpty(Ref ref) =>
+    ref.watch(libraryProvider).value ?? MusicLibrary.empty;
 
-final allArtistsProvider = Provider<List<Artist>>(
-  (ref) => ref.watch(libraryProvider).artists,
-);
+final allSongsProvider =
+    Provider<List<Song>>((ref) => _libOrEmpty(ref).songs);
 
-final allAlbumsProvider = Provider<List<Album>>(
-  (ref) => ref.watch(libraryProvider).albums,
-);
+final allArtistsProvider =
+    Provider<List<Artist>>((ref) => _libOrEmpty(ref).artists);
 
-final allPlaylistsProvider = Provider<List<Playlist>>(
-  (ref) => ref.watch(libraryProvider).playlists,
-);
+final allAlbumsProvider =
+    Provider<List<Album>>((ref) => _libOrEmpty(ref).albums);
+
+final allPlaylistsProvider =
+    Provider<List<Playlist>>((ref) => _libOrEmpty(ref).playlists);
 
 final searchQueryProvider = StateProvider<String>((ref) => '');
 

@@ -2,17 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../widgets/song_tile.dart';
 import '../providers/player_provider.dart';
-import '../screens/player_screen.dart';
+import 'player_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
-  HomeScreen({super.key});
+  const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final player = ref.watch(playerProvider);
     final searchText = ref.watch(searchProvider);
     final songs = ref.watch(songsProvider);
-    final search = ref.watch(searchProvider);
 
     final filteredSongs = songs.where((song) {
       return song.title.toLowerCase().contains(searchText.toLowerCase());
@@ -27,6 +26,14 @@ class HomeScreen extends ConsumerWidget {
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add, color: Colors.white),
+            onPressed: () async {
+              await ref.read(playerProvider.notifier).pickAndAddSong();
+            },
+          ),
+        ],
       ),
       body: Stack(
         children: [
@@ -34,35 +41,26 @@ class HomeScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 10),
-
-              // 🔍 BUSCADOR
               Padding(
                 padding: const EdgeInsets.all(12),
                 child: TextField(
                   style: const TextStyle(color: Colors.white),
-
                   onChanged: (value) {
                     ref.read(searchProvider.notifier).state = value;
                   },
-
                   decoration: InputDecoration(
                     hintText: "Buscar canción, artista...",
                     hintStyle: const TextStyle(color: Colors.white54),
-
                     prefixIcon: const Icon(Icons.search, color: Colors.white54),
-
                     suffixIcon: IconButton(
                       icon: const Icon(Icons.close, color: Colors.white54),
                       onPressed: () {
                         ref.read(searchProvider.notifier).state = "";
                       },
                     ),
-
                     filled: true,
                     fillColor: const Color(0xFF1A1A2E),
-
                     contentPadding: const EdgeInsets.symmetric(vertical: 0),
-
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(15),
                       borderSide: BorderSide.none,
@@ -110,7 +108,6 @@ class HomeScreen extends ConsumerWidget {
                                       );
                                     },
                                   ),
-
                             const Center(
                               child: Text(
                                 "Álbumes",
@@ -120,7 +117,6 @@ class HomeScreen extends ConsumerWidget {
                                 ),
                               ),
                             ),
-
                             const Center(
                               child: Text(
                                 "Artistas",
@@ -139,7 +135,6 @@ class HomeScreen extends ConsumerWidget {
               ),
             ],
           ),
-
           if (player.currentSong != null)
             AnimatedPositioned(
               duration: const Duration(milliseconds: 300),
@@ -155,11 +150,19 @@ class HomeScreen extends ConsumerWidget {
                   );
                 },
                 child: Container(
-                  height: 75,
+                  height: 82,
                   margin: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
                   decoration: BoxDecoration(
                     color: const Color(0xFF1A1A2E),
                     borderRadius: BorderRadius.circular(20),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 8,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
                   ),
                   child: Column(
                     children: [
@@ -176,17 +179,25 @@ class HomeScreen extends ConsumerWidget {
                               final duration = snapshot2.data ?? Duration.zero;
 
                               double progress = 0;
-                              if (duration.inSeconds > 0) {
+                              if (duration.inMilliseconds > 0) {
                                 progress =
-                                    position.inSeconds / duration.inSeconds;
+                                    position.inMilliseconds /
+                                    duration.inMilliseconds;
+                                if (progress > 1) progress = 1;
                               }
 
-                              return LinearProgressIndicator(
-                                value: progress,
-                                minHeight: 3,
-                                backgroundColor: Colors.white10,
-                                valueColor: const AlwaysStoppedAnimation(
-                                  Colors.purpleAccent,
+                              return ClipRRect(
+                                borderRadius: const BorderRadius.only(
+                                  topLeft: Radius.circular(20),
+                                  topRight: Radius.circular(20),
+                                ),
+                                child: LinearProgressIndicator(
+                                  value: progress,
+                                  minHeight: 3,
+                                  backgroundColor: Colors.white10,
+                                  valueColor: const AlwaysStoppedAnimation(
+                                    Colors.tealAccent,
+                                  ),
                                 ),
                               );
                             },
@@ -196,33 +207,91 @@ class HomeScreen extends ConsumerWidget {
                       Expanded(
                         child: Row(
                           children: [
-                            const SizedBox(width: 10),
                             Container(
-                              width: 45,
-                              height: 45,
+                              width: 52,
+                              height: 52,
                               decoration: BoxDecoration(
-                                color: Colors.greenAccent,
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(12),
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Colors.tealAccent,
+                                    Color(0xFF0B0B1A),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
                               ),
-                              child: const Icon(Icons.music_note),
+                              child: const Icon(
+                                Icons.music_note,
+                                color: Colors.white,
+                              ),
                             ),
-                            const SizedBox(width: 10),
+                            const SizedBox(width: 12),
                             Expanded(
-                              child: Text(
-                                player.currentSong!.title,
-                                style: const TextStyle(color: Colors.white),
-                                overflow: TextOverflow.ellipsis,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    player.currentSong!.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    player.currentSong!.artist ?? "Desconocido",
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Colors.white60,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                             IconButton(
-                              icon: Icon(
-                                player.isPlaying
-                                    ? Icons.pause
-                                    : Icons.play_arrow,
+                              icon: const Icon(
+                                Icons.skip_previous,
                                 color: Colors.white,
                               ),
-                              onPressed: () {
-                                ref.read(playerProvider.notifier).togglePlay();
+                              onPressed: () async {
+                                await ref
+                                    .read(playerProvider.notifier)
+                                    .previous();
+                              },
+                            ),
+                            Container(
+                              decoration: const BoxDecoration(
+                                color: Colors.tealAccent,
+                                shape: BoxShape.circle,
+                              ),
+                              child: IconButton(
+                                icon: Icon(
+                                  player.isPlaying
+                                      ? Icons.pause
+                                      : Icons.play_arrow,
+                                  color: Colors.black,
+                                ),
+                                onPressed: () async {
+                                  await ref
+                                      .read(playerProvider.notifier)
+                                      .togglePlay();
+                                },
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.skip_next,
+                                color: Colors.white,
+                              ),
+                              onPressed: () async {
+                                await ref.read(playerProvider.notifier).next();
                               },
                             ),
                           ],

@@ -1,39 +1,45 @@
 import 'package:just_audio/just_audio.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 
 class AudioService {
   final AudioPlayer player = AudioPlayer();
 
-  /// Reproducir canción
-  Future<void> play(String path) async {
-    try {
-      await player.setFilePath(path);
-      await player.play();
-    } catch (e) {
-      print("Error al reproducir: $e");
+  Future<void> play(String path, {String? title, String? artist}) async {
+    if (path.startsWith('http')) {
+      await player.setAudioSource(
+        AudioSource.uri(
+          Uri.parse(path),
+          tag: MediaItem(
+            id: path,
+            title: title ?? 'Canción',
+            artist: artist ?? 'Desconocido',
+          ),
+        ),
+      );
+    } else {
+      await player.setAudioSource(
+        AudioSource.file(
+          path,
+          tag: MediaItem(
+            id: path,
+            title: title ?? 'Canción local',
+            artist: artist ?? 'Local',
+          ),
+        ),
+      );
     }
+
+    await player.play();
   }
 
-  ///  Pausar
-  void pause() {
-    player.pause();
+  Future<void> pause() async {
+    await player.pause();
   }
 
-  ///  Reanudar
-  void resume() {
-    player.play();
+  Future<void> stop() async {
+    await player.stop();
   }
 
-  ///  Detener
-  void stop() {
-    player.stop();
-  }
-
-  /// Streams para la barra de progreso
   Stream<Duration> get positionStream => player.positionStream;
   Stream<Duration?> get durationStream => player.durationStream;
-
-  /// MUY IMPORTANTE(evita bugs y consumo de memoria)
-  Future<void> dispose() async {
-    await player.dispose();
-  }
 }

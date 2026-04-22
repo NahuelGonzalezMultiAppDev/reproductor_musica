@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
+//import 'package:flutter_riverpod/legacy.dart';
 
 import '../models/album.dart';
 import '../models/artist.dart';
@@ -143,8 +143,7 @@ final libraryProvider =
 MusicLibrary _libOrEmpty(Ref ref) =>
     ref.watch(libraryProvider).value ?? MusicLibrary.empty;
 
-final allSongsProvider =
-    Provider<List<Song>>((ref) => _libOrEmpty(ref).songs);
+final allSongsProvider = Provider<List<Song>>((ref) => _libOrEmpty(ref).songs);
 
 final allArtistsProvider =
     Provider<List<Artist>>((ref) => _libOrEmpty(ref).artists);
@@ -167,8 +166,7 @@ final selectedGenreProvider = StateProvider<Genre?>((ref) => null);
 
 final selectedYearProvider = StateProvider<int?>((ref) => null);
 
-final songSortProvider =
-    StateProvider<SongSortBy>((ref) => SongSortBy.title);
+final songSortProvider = StateProvider<SongSortBy>((ref) => SongSortBy.title);
 
 final sortOrderProvider =
     StateProvider<SortOrder>((ref) => SortOrder.ascending);

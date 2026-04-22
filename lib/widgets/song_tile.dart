@@ -20,7 +20,6 @@ class SongTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-
       leading: Container(
         width: 55,
         height: 55,
@@ -37,7 +36,6 @@ class SongTile extends ConsumerWidget {
         ),
         child: const Icon(Icons.music_note, color: Colors.white),
       ),
-
       title: Text(
         song.title,
         style: const TextStyle(
@@ -45,14 +43,11 @@ class SongTile extends ConsumerWidget {
           fontWeight: FontWeight.bold,
         ),
       ),
-
-      subtitle: const Text(
-        "Artista • 3:45",
-        style: TextStyle(color: Colors.white54),
+      subtitle: Text(
+        song.artist ?? "Desconocido",
+        style: const TextStyle(color: Colors.white54),
       ),
-
       trailing: const Icon(Icons.more_vert, color: Colors.white70),
-
       onTap: () {
         ref.read(playerProvider.notifier).playSong(playlist, index);
 

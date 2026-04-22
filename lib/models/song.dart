@@ -61,4 +61,46 @@ class Song {
       isFavorite: isFavorite ?? this.isFavorite,
     );
   }
+
+  Map<String, Object?> toMap() {
+    return {
+      'id': id,
+      'title': title,
+      'path': path,
+      'artist': artist,
+      'album': album,
+      'genre': genre?.label,
+      'year': year,
+      'duration_ms': duration?.inMilliseconds,
+      'artwork': artwork,
+      'track_number': trackNumber,
+      'date_added': dateAdded?.millisecondsSinceEpoch,
+      'play_count': playCount,
+      'is_favorite': isFavorite ? 1 : 0,
+    };
+  }
+
+  factory Song.fromMap(Map<String, Object?> row) {
+    final genreLabel = row['genre'] as String?;
+    final durationMs = row['duration_ms'] as int?;
+    final dateAddedMs = row['date_added'] as int?;
+    return Song(
+      id: row['id'] as String,
+      title: row['title'] as String,
+      path: row['path'] as String,
+      artist: row['artist'] as String?,
+      album: row['album'] as String?,
+      genre: genreLabel == null ? null : Genre.fromLabel(genreLabel),
+      year: row['year'] as int?,
+      duration:
+          durationMs == null ? null : Duration(milliseconds: durationMs),
+      artwork: row['artwork'] as String?,
+      trackNumber: row['track_number'] as int?,
+      dateAdded: dateAddedMs == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(dateAddedMs),
+      playCount: (row['play_count'] as int?) ?? 0,
+      isFavorite: ((row['is_favorite'] as int?) ?? 0) == 1,
+    );
+  }
 }

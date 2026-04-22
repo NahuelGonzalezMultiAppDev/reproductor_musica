@@ -34,4 +34,31 @@ class Playlist {
       isSystem: isSystem ?? this.isSystem,
     );
   }
+
+  Map<String, Object?> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'description': description,
+      'cover_path': coverPath,
+      'created_at': createdAt.millisecondsSinceEpoch,
+      'is_system': isSystem ? 1 : 0,
+    };
+  }
+
+  factory Playlist.fromMap(
+    Map<String, Object?> row,
+    List<String> songIds,
+  ) {
+    return Playlist(
+      id: row['id'] as String,
+      name: row['name'] as String,
+      description: row['description'] as String?,
+      coverPath: row['cover_path'] as String?,
+      songIds: songIds,
+      createdAt:
+          DateTime.fromMillisecondsSinceEpoch(row['created_at'] as int),
+      isSystem: ((row['is_system'] as int?) ?? 0) == 1,
+    );
+  }
 }

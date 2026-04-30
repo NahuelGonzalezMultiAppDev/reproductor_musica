@@ -3,26 +3,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:just_audio/just_audio.dart';
 import 'package:file_picker/file_picker.dart';
+
 import '../models/song.dart';
 import '../services/audio_service.dart';
+import '../services/database_helper.dart';
+import 'library_provider.dart';
+
+// ─── Audio Service ────────────────────────────────────────────────────────────
 
 final audioServiceProvider = Provider<AudioService>((ref) {
-  return AudioService();
+  final service = AudioService();
+  ref.onDispose(() => service.dispose());
+  return service;
 });
 
-final searchProvider = StateProvider<String>((ref) => '');
-
-final songsProvider = StateProvider<List<Song>>(
-  (ref) => [
-    Song(
-      title: "Blinding Lights",
-      path: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-      artist: "Demo",
-    ),
-    Song(title: "Starboy", path: "", artist: "Demo"),
-    Song(title: "Levitating", path: "", artist: "Demo"),
-  ],
-);
+// ─── Player State ─────────────────────────────────────────────────────────────
 
 class PlayerState {
   final List<Song> playlist;
@@ -31,7 +26,7 @@ class PlayerState {
   final bool isRepeat;
   final bool isShuffle;
 
-  PlayerState({
+  const PlayerState({
     this.playlist = const [],
     this.currentIndex = 0,
     this.isPlaying = false,
@@ -62,35 +57,33 @@ class PlayerState {
   }
 }
 
-final playerProvider = NotifierProvider<PlayerNotifier, PlayerState>(() {
-  return PlayerNotifier();
-});
+// ─── Player Notifier ──────────────────────────────────────────────────────────
+
+final playerProvider = NotifierProvider<PlayerNotifier, PlayerState>(
+  PlayerNotifier.new,
+);
 
 class PlayerNotifier extends Notifier<PlayerState> {
+  AudioService get _audio => ref.read(audioServiceProvider);
+
   @override
   PlayerState build() {
-    final audio = ref.read(audioServiceProvider);
-
-    audio.player.playerStateStream.listen((playerState) {
-      if (playerState.processingState == ProcessingState.completed) {
+    // Escucha fin de canción → avanza automáticamente
+    _audio.player.playerStateStream.listen((ps) {
+      if (ps.processingState == ProcessingState.completed) {
         next();
       }
     });
 
-    audio.player.playingStream.listen((playing) {
+    // Sincroniza isPlaying con el stream real del player
+    _audio.player.playingStream.listen((playing) {
       state = state.copyWith(isPlaying: playing);
     });
 
-    return PlayerState();
+    return const PlayerState();
   }
 
-  void toggleShuffle() {
-    state = state.copyWith(isShuffle: !state.isShuffle);
-  }
-
-  void toggleRepeat() {
-    state = state.copyWith(isRepeat: !state.isRepeat);
-  }
+  // ── Reproducción ────────────────────────────────────────────────────────────
 
   Future<void> playSong(List<Song> songs, int index) async {
     if (songs.isEmpty || index < 0 || index >= songs.length) return;
@@ -104,36 +97,36 @@ class PlayerNotifier extends Notifier<PlayerState> {
     );
 
     if (song.path.isNotEmpty) {
-      await ref
-          .read(audioServiceProvider)
-          .play(song.path, title: song.title, artist: song.artist);
+      await _audio.play(song.path, title: song.title, artist: song.artist);
+      // Incrementa play count en BD y notifica al libraryProvider
+      await DatabaseHelper.instance.incrementSongPlayCount(song.id);
+      await ref.read(libraryProvider.notifier).incrementPlayCount(song.id);
     }
   }
 
   Future<void> togglePlay() async {
-    final audio = ref.read(audioServiceProvider);
-
     if (state.isPlaying) {
-      await audio.pause();
+      await _audio.pause();
     } else {
-      await audio.player.play();
+      await _audio.player.play();
     }
   }
 
   Future<void> next() async {
     if (state.playlist.isEmpty) return;
 
-    int nextIndex;
-
+    final int nextIndex;
     if (state.isRepeat) {
       nextIndex = state.currentIndex;
     } else if (state.isShuffle) {
       if (state.playlist.length == 1) {
         nextIndex = state.currentIndex;
       } else {
+        int idx;
         do {
-          nextIndex = Random().nextInt(state.playlist.length);
-        } while (nextIndex == state.currentIndex);
+          idx = Random().nextInt(state.playlist.length);
+        } while (idx == state.currentIndex);
+        nextIndex = idx;
       }
     } else {
       nextIndex = (state.currentIndex + 1) % state.playlist.length;
@@ -144,41 +137,68 @@ class PlayerNotifier extends Notifier<PlayerState> {
     state = state.copyWith(currentIndex: nextIndex, isPlaying: true);
 
     if (nextSong.path.isNotEmpty) {
-      await ref.read(audioServiceProvider).play(nextSong.path);
+      await _audio.play(nextSong.path,
+          title: nextSong.title, artist: nextSong.artist);
+      await DatabaseHelper.instance.incrementSongPlayCount(nextSong.id);
+      await ref.read(libraryProvider.notifier).incrementPlayCount(nextSong.id);
     }
   }
 
   Future<void> previous() async {
     if (state.playlist.isEmpty) return;
 
-    int prevIndex = state.currentIndex - 1;
-
-    if (prevIndex < 0) {
-      prevIndex = state.playlist.length - 1;
-    }
+    final prevIndex = state.currentIndex == 0
+        ? state.playlist.length - 1
+        : state.currentIndex - 1;
 
     final prevSong = state.playlist[prevIndex];
 
     state = state.copyWith(currentIndex: prevIndex, isPlaying: true);
 
     if (prevSong.path.isNotEmpty) {
-      await ref.read(audioServiceProvider).play(prevSong.path);
+      await _audio.play(prevSong.path,
+          title: prevSong.title, artist: prevSong.artist);
     }
   }
 
+  // ── Controles ────────────────────────────────────────────────────────────────
+
+  void toggleShuffle() => state = state.copyWith(isShuffle: !state.isShuffle);
+  void toggleRepeat() => state = state.copyWith(isRepeat: !state.isRepeat);
+
+  // ── Agregar canción desde archivo ────────────────────────────────────────────
+
   Future<void> pickAndAddSong() async {
-    final FilePickerResult? result = await FilePicker.pickFiles(
+    final result = await FilePicker.pickFiles(
       type: FileType.audio,
       allowMultiple: false,
     );
+    if (result == null || result.files.single.path == null) return;
 
-    if (result != null && result.files.single.path != null) {
-      final file = result.files.single;
+    final file = result.files.single;
+    final newSong = Song(
+      title: file.name.replaceAll(RegExp(r'\.[^.]+$'), ''), // sin extensión
+      path: file.path!,
+      artist: 'Desconocido',
+      dateAdded: DateTime.now(),
+    );
 
-      final newSong = Song(title: file.name, path: file.path!, artist: "Local");
+    // Persiste en SQLite y actualiza el estado de la librería
+    await ref.read(libraryProvider.notifier).addSong(newSong);
+  }
 
-      final currentSongs = ref.read(songsProvider);
-      ref.read(songsProvider.notifier).state = [...currentSongs, newSong];
-    }
+  // ── Toggle favorito (delega al libraryProvider) ───────────────────────────────
+
+  Future<void> toggleFavorite(String songId) async {
+    await ref.read(libraryProvider.notifier).toggleFavorite(songId);
+
+    // Refleja el cambio en la playlist activa
+    final lib = ref.read(libraryProvider).value;
+    if (lib == null) return;
+    final updatedPlaylist = state.playlist.map((s) {
+      final updated = lib.songs.where((ls) => ls.id == s.id).firstOrNull;
+      return updated ?? s;
+    }).toList();
+    state = state.copyWith(playlist: updatedPlaylist);
   }
 }

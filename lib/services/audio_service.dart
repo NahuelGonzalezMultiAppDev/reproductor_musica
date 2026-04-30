@@ -42,4 +42,6 @@ class AudioService {
 
   Stream<Duration> get positionStream => player.positionStream;
   Stream<Duration?> get durationStream => player.durationStream;
+
+  void dispose() {}
 }

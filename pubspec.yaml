@@ -1,17 +1,20 @@
 name: reproductor_musica
 description: Proyecto reproductor de música.
 version: 1.0.0+1
-
+ 
 environment:
   sdk: ">=3.0.0 <4.0.0"
-
+ 
 dependencies:
   flutter:
     sdk: flutter
-  flutter_riverpod: ^2.0.0
-  just_audio: ^0.9.36
+  flutter_riverpod: ^2.5.0
+  just_audio: ^0.9.40
   just_audio_background: ^0.0.1-beta.17
-  file_picker: ^11.0.2
-  sqflite: ^2.3.3
-  sqflite_common_ffi: ^2.3.3
+  file_picker: 11.0.2
+  sqflite: ^2.3.0
+  sqflite_common_ffi: ^2.3.0
   path: ^1.9.0
+ 
+flutter:
+  uses-material-design: true

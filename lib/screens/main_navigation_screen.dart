@@ -1,52 +1,46 @@
 import 'package:flutter/material.dart';
-import 'home_screen.dart';
-import 'search_screen.dart';
-import 'settings_screen.dart';
-import 'listas_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class MainNavigationScreen extends StatefulWidget {
+import 'home_screen.dart';
+import 'listas_screen.dart';
+import 'settings_screen.dart';
+
+class MainNavigationScreen extends ConsumerStatefulWidget {
   const MainNavigationScreen({super.key});
 
   @override
-  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
+  ConsumerState<MainNavigationScreen> createState() =>
+      _MainNavigationScreenState();
 }
 
-class _MainNavigationScreenState extends State<MainNavigationScreen> {
+class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
   int _currentIndex = 0;
 
   final List<Widget> _screens = [
-    HomeScreen(), // Inicio
-    const ListasScreen(), // Listas
-    const SearchScreen(),
+    const HomeScreen(),
+    const ListasScreen(),
     const SettingsScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
       body: _screens[_currentIndex],
-
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: const Color(0xFF0B0B1A),
-        selectedItemColor: Colors.purpleAccent,
-        unselectedItemColor: Colors.white70,
+        backgroundColor:
+            Theme.of(context).bottomNavigationBarTheme.backgroundColor,
+        selectedItemColor: cs.primary,
+        unselectedItemColor: cs.onSurface.withOpacity(0.5),
         type: BottomNavigationBarType.fixed,
         currentIndex: _currentIndex,
-
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-
+        onTap: (index) => setState(() => _currentIndex = index),
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Inicio"),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Inicio'),
           BottomNavigationBarItem(
-            icon: Icon(Icons.library_music),
-            label: "Listas", // CAMBIADO
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: "Buscar"),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: "Ajustes"),
+              icon: Icon(Icons.library_music), label: 'Biblioteca'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Ajustes'),
         ],
       ),
     );

@@ -15,6 +15,7 @@ dependencies:
   sqflite: ^2.3.0
   sqflite_common_ffi: ^2.3.0
   path: ^1.9.0
- 
+  shared_preferences: ^2.5.5
+
 flutter:
   uses-material-design: true

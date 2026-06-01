@@ -4,16 +4,19 @@ import 'package:just_audio/just_audio.dart';
 import 'package:file_picker/file_picker.dart';
 import '../models/song.dart';
 import '../models/artist.dart';
+import '../services/audio_handler.dart';
 import '../services/audio_service.dart';
 import '../services/database_helper.dart';
 import 'library_provider.dart';
 
-// ─── Audio Service Provider ───────────────────────────────────────────────────
+// ─── Providers ────────────────────────────────────────────────────────────────
 
-final audioServiceProvider = Provider<AudioService>((ref) {
-  final service = AudioService();
-  ref.onDispose(() => service.dispose());
-  return service;
+final audioHandlerProvider = Provider<AudioPlayerHandler>((ref) {
+  throw UnimplementedError('audioHandlerProvider must be overridden in main');
+});
+
+final audioServiceProvider = Provider<PlayerAudioService>((ref) {
+  throw UnimplementedError('audioServiceProvider must be overridden in main');
 });
 
 // ─── Player State ─────────────────────────────────────────────────────────────
@@ -63,16 +66,30 @@ final playerProvider = NotifierProvider<PlayerNotifier, PlayerState>(
 );
 
 class PlayerNotifier extends Notifier<PlayerState> {
-  AudioService get _audio => ref.read(audioServiceProvider);
+  PlayerAudioService get _audio => ref.read(audioServiceProvider);
 
   @override
   PlayerState build() {
-    _audio.player.playerStateStream.listen((ps) {
+    final handler = ref.read(audioHandlerProvider);
+
+    // Conecta los controles de la notificación / pantalla de bloqueo
+    final sub1 = handler.onSkipNext.listen((_) => next());
+    final sub2 = handler.onSkipPrevious.listen((_) => previous());
+
+    final sub3 = _audio.player.playerStateStream.listen((ps) {
       if (ps.processingState == ProcessingState.completed) next();
     });
-    _audio.player.playingStream.listen((playing) {
+    final sub4 = _audio.player.playingStream.listen((playing) {
       state = state.copyWith(isPlaying: playing);
     });
+
+    ref.onDispose(() {
+      sub1.cancel();
+      sub2.cancel();
+      sub3.cancel();
+      sub4.cancel();
+    });
+
     return const PlayerState();
   }
 
@@ -160,7 +177,6 @@ class PlayerNotifier extends Notifier<PlayerState> {
     int? trackNumber;
 
     try {
-      // just_audio puede leer duración del archivo
       final tempPlayer = AudioPlayer();
       await tempPlayer.setFilePath(path);
       durationMs = tempPlayer.duration?.inMilliseconds;
@@ -180,7 +196,6 @@ class PlayerNotifier extends Notifier<PlayerState> {
 
     await ref.read(libraryProvider.notifier).addSong(newSong);
 
-    // Guarda artista en BD si no existe
     if (artist != null && artist.isNotEmpty) {
       final lib = ref.read(libraryProvider).value;
       final exists = lib?.artists

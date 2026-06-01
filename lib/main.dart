@@ -1,23 +1,48 @@
+import 'package:audio_service/audio_service.dart' as bg;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:just_audio_background/just_audio_background.dart';
 
 import 'screens/main_navigation_screen.dart';
+import 'services/audio_handler.dart';
+import 'services/audio_service.dart';
 import 'services/database_helper.dart';
+import 'providers/player_provider.dart';
 import 'providers/theme_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  AudioPlayerHandler handler;
   try {
-    await JustAudioBackground.init(
-      androidNotificationChannelId: 'com.example.reproductor_musica.channel.audio',
-      androidNotificationChannelName: 'Reproducción de música',
-      androidNotificationOngoing: true,
-      androidShowNotificationBadge: true,
+    handler = await bg.AudioService.init<AudioPlayerHandler>(
+      builder: () => AudioPlayerHandler(),
+      config: const bg.AudioServiceConfig(
+        androidNotificationChannelId:
+            'com.example.reproductor_musica.channel.audio',
+        androidNotificationChannelName: 'Reproducción de música',
+        androidNotificationOngoing: true,
+        androidShowNotificationBadge: true,
+      ),
     );
-  } catch (_) {}
+  } catch (_) {
+    // Si el servicio de background falla, la app igual funciona sin notificación
+    handler = AudioPlayerHandler();
+  }
+
+  final playerService = PlayerAudioService(handler);
+
   await DatabaseHelper.instance.database;
-  runApp(const ProviderScope(child: MyApp()));
+
+  runApp(ProviderScope(
+    overrides: [
+      audioHandlerProvider.overrideWithValue(handler),
+      audioServiceProvider.overrideWith((ref) {
+        ref.onDispose(() => playerService.dispose());
+        return playerService;
+      }),
+    ],
+    child: const MyApp(),
+  ));
 }
 
 class MyApp extends ConsumerWidget {

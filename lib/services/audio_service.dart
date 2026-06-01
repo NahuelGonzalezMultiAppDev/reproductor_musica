@@ -1,47 +1,22 @@
 import 'package:just_audio/just_audio.dart';
-import 'package:just_audio_background/just_audio_background.dart';
+import 'audio_handler.dart';
 
-class AudioService {
-  final AudioPlayer player = AudioPlayer();
+class PlayerAudioService {
+  final AudioPlayerHandler _handler;
 
-  Future<void> play(String path, {String? title, String? artist}) async {
-    if (path.startsWith('http')) {
-      await player.setAudioSource(
-        AudioSource.uri(
-          Uri.parse(path),
-          tag: MediaItem(
-            id: path,
-            title: title ?? 'Canción',
-            artist: artist ?? 'Desconocido',
-          ),
-        ),
-      );
-    } else {
-      await player.setAudioSource(
-        AudioSource.file(
-          path,
-          tag: MediaItem(
-            id: path,
-            title: title ?? 'Canción local',
-            artist: artist ?? 'Local',
-          ),
-        ),
-      );
-    }
+  PlayerAudioService(this._handler);
 
-    await player.play();
-  }
+  AudioPlayer get player => _handler.player;
 
-  Future<void> pause() async {
-    await player.pause();
-  }
+  Future<void> play(String path, {String? title, String? artist}) =>
+      _handler.playFromPath(path, title: title, artist: artist);
 
-  Future<void> stop() async {
-    await player.stop();
-  }
+  Future<void> pause() => _handler.pause();
 
-  Stream<Duration> get positionStream => player.positionStream;
-  Stream<Duration?> get durationStream => player.durationStream;
+  Future<void> stop() => _handler.stop();
 
-  void dispose() {}
+  Stream<Duration> get positionStream => _handler.player.positionStream;
+  Stream<Duration?> get durationStream => _handler.player.durationStream;
+
+  void dispose() => _handler.dispose();
 }

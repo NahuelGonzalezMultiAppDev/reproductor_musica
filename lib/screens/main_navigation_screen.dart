@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'home_screen.dart';
 import 'listas_screen.dart';
 import 'settings_screen.dart';
+import '../widgets/mini_player_bar.dart';
 
 class MainNavigationScreen extends ConsumerStatefulWidget {
   const MainNavigationScreen({super.key});
@@ -27,12 +28,17 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      body: _screens[_currentIndex],
+      body: Column(
+        children: [
+          Expanded(child: _screens[_currentIndex]),
+          const MiniPlayerBar(),
+        ],
+      ),
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor:
             Theme.of(context).bottomNavigationBarTheme.backgroundColor,
         selectedItemColor: cs.primary,
-        unselectedItemColor: cs.onSurface.withOpacity(0.5),
+        unselectedItemColor: cs.onSurface.withValues(alpha: 0.5),
         type: BottomNavigationBarType.fixed,
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),

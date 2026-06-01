@@ -8,12 +8,14 @@ import 'providers/theme_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await JustAudioBackground.init(
-    androidNotificationChannelId: 'com.example.reproductor_musica.channel.audio',
-    androidNotificationChannelName: 'Reproducción de música',
-    androidNotificationOngoing: true,
-    androidShowNotificationBadge: true,
-  );
+  try {
+    await JustAudioBackground.init(
+      androidNotificationChannelId: 'com.example.reproductor_musica.channel.audio',
+      androidNotificationChannelName: 'Reproducción de música',
+      androidNotificationOngoing: true,
+      androidShowNotificationBadge: true,
+    );
+  } catch (_) {}
   await DatabaseHelper.instance.database;
   runApp(const ProviderScope(child: MyApp()));
 }

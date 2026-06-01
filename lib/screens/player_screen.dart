@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/player_provider.dart';
+import 'package:reproductor_musica/screens/equalizer_screen.dart';
 
 class PlayerScreen extends ConsumerWidget {
   const PlayerScreen({super.key});
@@ -52,28 +53,23 @@ class PlayerScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 48),
-                ],
-              ),
-              const SizedBox(height: 24),
-              Container(
-                width: double.infinity,
-                constraints: const BoxConstraints(
-                  maxWidth: 320,
-                  maxHeight: 320,
-                ),
-                height: MediaQuery.of(context).size.width * 0.72,
-                decoration: BoxDecoration(
-                  color: Colors.tealAccent.withOpacity(0.7),
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: const Center(
-                  child: Icon(
-                    Icons.music_note,
-                    size: 90,
-                    color: Colors.black38,
+                  IconButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const EqualizerScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(
+                      Icons.graphic_eq,
+                      color: Colors.tealAccent,
+                      size: 28,
+                    ),
+                    tooltip: 'Ecualizador',
                   ),
-                ),
+                ],
               ),
               const SizedBox(height: 28),
               Text(
@@ -165,6 +161,22 @@ class PlayerScreen extends ConsumerWidget {
                           : Colors.white,
                       size: 28,
                     ),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const EqualizerScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(
+                      Icons.graphic_eq,
+                      color: Colors.tealAccent,
+                      size: 30,
+                    ),
+                    tooltip: 'Ecualizador',
                   ),
                   IconButton(
                     onPressed: () async {

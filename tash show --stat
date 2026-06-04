@@ -1,0 +1,13 @@
+[33mcommit 1044f83802adf2ae115d238cbbed0ac606a5b45a[m[33m ([m[1;35mrefs/stash[m[33m)[m
+Merge: 97e10d7 e4f2849
+Author: agustin-12 <zarcorgame209@gmail.com>
+Date:   Sun May 31 21:51:17 2026 -0300
+
+    WIP on Logica-Agustin: 97e10d7 Mejoras visuales UI Spotify
+
+android/app/build.gradle.kts
+android/app/src/main/AndroidManifest.xml
+lib/main.dart
+lib/services/audio_service.dart
+pubspec.lock
+pubspec.yaml

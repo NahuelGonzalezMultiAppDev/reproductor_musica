@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/player_provider.dart';
+import 'package:reproductor_musica/screens/equalizer_screen.dart';
 
 class PlayerScreen extends ConsumerWidget {
   const PlayerScreen({super.key});
@@ -30,50 +31,83 @@ class PlayerScreen extends ConsumerWidget {
             children: [
               Row(
                 children: [
+                  // Botón volver
                   IconButton(
                     onPressed: () => Navigator.pop(context),
                     icon: Icon(Icons.keyboard_arrow_down, color: cs.onSurface),
                   ),
+                  // Título centrado
                   Expanded(
-                    child: Text('REPRODUCIENDO AHORA',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            color: cs.onSurface,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16)),
+                    child: Text(
+                      'REPRODUCIENDO AHORA',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: cs.onSurface,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
                   ),
-                  const SizedBox(width: 48),
+                  // Botón ecualizador en esquina superior derecha
+                  IconButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const EqualizerScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(
+                      Icons.graphic_eq,
+                      color: Colors.tealAccent,
+                      size: 28,
+                    ),
+                    tooltip: 'Ecualizador',
+                  ),
                 ],
               ),
               const SizedBox(height: 24),
               Container(
                 width: double.infinity,
-                constraints:
-                    const BoxConstraints(maxWidth: 320, maxHeight: 320),
+                constraints: const BoxConstraints(
+                  maxWidth: 320,
+                  maxHeight: 320,
+                ),
                 height: MediaQuery.of(context).size.width * 0.72,
                 decoration: BoxDecoration(
-                  color: cs.primary.withOpacity(0.7),
+                  color: Colors.tealAccent.withOpacity(0.7),
                   borderRadius: BorderRadius.circular(24),
                 ),
-                child: Center(
-                  child: Icon(Icons.music_note,
-                      size: 90, color: cs.onPrimary.withOpacity(0.5)),
+                child: const Center(
+                  child: Icon(
+                    Icons.music_note,
+                    size: 90,
+                    color: Colors.black38,
+                  ),
                 ),
               ),
               const SizedBox(height: 28),
-              Text(currentSong.title,
-                  textAlign: TextAlign.center,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      color: cs.onSurface,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold)),
+              Text(
+                currentSong.title,
+                textAlign: TextAlign.center,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: cs.onSurface,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(height: 8),
-              Text(currentSong.artist ?? 'Desconocido',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      color: cs.onSurface.withOpacity(0.6), fontSize: 18)),
+              Text(
+                currentSong.artist ?? 'Desconocido',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: cs.onSurface.withOpacity(0.6),
+                  fontSize: 18,
+                ),
+              ),
               const SizedBox(height: 28),
               StreamBuilder<Duration>(
                 stream: audioService.positionStream,
@@ -107,12 +141,16 @@ class PlayerScreen extends ConsumerWidget {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(_formatDuration(position),
-                                    style: TextStyle(
-                                        color: cs.onSurface.withOpacity(0.6))),
-                                Text(_formatDuration(duration),
-                                    style: TextStyle(
-                                        color: cs.onSurface.withOpacity(0.6))),
+                                Text(
+                                  _formatDuration(position),
+                                  style: TextStyle(
+                                      color: cs.onSurface.withOpacity(0.6)),
+                                ),
+                                Text(
+                                  _formatDuration(duration),
+                                  style: TextStyle(
+                                      color: cs.onSurface.withOpacity(0.6)),
+                                ),
                               ],
                             ),
                           ),
@@ -123,16 +161,18 @@ class PlayerScreen extends ConsumerWidget {
                 },
               ),
               const SizedBox(height: 20),
+              // Fila de controles (sin el botón de EQ, que ahora está arriba)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   IconButton(
                     onPressed: () =>
                         ref.read(playerProvider.notifier).toggleShuffle(),
-                    icon: Icon(Icons.shuffle,
-                        color:
-                            playerState.isShuffle ? cs.primary : cs.onSurface,
-                        size: 28),
+                    icon: Icon(
+                      Icons.shuffle,
+                      color: playerState.isShuffle ? cs.primary : cs.onSurface,
+                      size: 28,
+                    ),
                   ),
                   IconButton(
                     onPressed: () async =>
@@ -142,16 +182,17 @@ class PlayerScreen extends ConsumerWidget {
                   ),
                   Container(
                     decoration: BoxDecoration(
-                        color: cs.primary, shape: BoxShape.circle),
+                      color: cs.primary,
+                      shape: BoxShape.circle,
+                    ),
                     child: IconButton(
                       onPressed: () async =>
                           await ref.read(playerProvider.notifier).togglePlay(),
                       icon: Icon(
-                          playerState.isPlaying
-                              ? Icons.pause
-                              : Icons.play_arrow,
-                          color: cs.onPrimary,
-                          size: 38),
+                        playerState.isPlaying ? Icons.pause : Icons.play_arrow,
+                        color: cs.onPrimary,
+                        size: 38,
+                      ),
                     ),
                   ),
                   IconButton(
@@ -162,9 +203,11 @@ class PlayerScreen extends ConsumerWidget {
                   IconButton(
                     onPressed: () =>
                         ref.read(playerProvider.notifier).toggleRepeat(),
-                    icon: Icon(Icons.repeat,
-                        color: playerState.isRepeat ? cs.primary : cs.onSurface,
-                        size: 28),
+                    icon: Icon(
+                      Icons.repeat,
+                      color: playerState.isRepeat ? cs.primary : cs.onSurface,
+                      size: 28,
+                    ),
                   ),
                 ],
               ),
